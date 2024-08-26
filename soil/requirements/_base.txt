@@ -1,14 +1,14 @@
 # requirements/_base.txt
-Django==3.0.6
+Django==3.2.20
 psycopg2==2.8.4
 django-address==0.2.2
 djangorestframework==3.11.0
 requests==2.22.0
-django-crispy-forms==1.9.0
+django-crispy-forms==1.14.0
 django-extensions==2.2.9
-django-tables2==2.2.1
+django-tables2==2.4.1
 django-formtools==2.2
-django-bootstrap-datepicker-plus==3.0.5
+django-bootstrap-datepicker-plus==5.0.3
 django-bootstrap4==1.1.1
 python-dateutil==2.8.1
 django-autocomplete-light==3.5.1
@@ -18,3 +18,5 @@ coreapi==2.3.3
 numpy==1.19.2
 django-import-export==2.5.0
 djangorestframework_simplejwt==4.4.0
+pydantic==1.10.7
+crispy_bootstrap4
