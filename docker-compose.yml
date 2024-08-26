@@ -1,0 +1,50 @@
+version: "3"
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: soil/Dockerfile
+      args:
+        - DJANGO_SETTINGS_MODULE=soil.settings.dev_docker
+        - DJANGO_SECRET_KEY=secret
+        - HORTPLUS_JACK_KE=secret
+        - SOIL_DB_PASSWORD=soiladmin
+        - SOIL_DB_USER=soiladmin
+        - SOIL_DB_NAME=soil
+        - SOIL_DB_HOST=db
+        - HORTPLUS_API_KEY=secret
+        - HORTPLUS_METWATCH_API_KEY=secret
+        - PROPERTIES_API_URL='https://staging.api.properties.hortplus.com/'
+        - METWATCH_API_URL='https://staging.api.metwatch.nz/'
+    volumes:
+      - static_volume:/app/static
+      - media_volume:/app/media
+    ports:
+      - "80:8000"
+      - "443:8443"
+    depends_on:
+      - db
+    environment:
+      - DATABASE_URL=postgresql://soiladmin:soiladmin@db:5432/soil
+      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY:-default_secret_key_change_me_in_production}
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py collectstatic --noinput &&
+             python manage.py runserver 0.0.0.0:8000"
+
+  db:
+    build:
+      context: .
+      dockerfile: soil/Dockerfile.db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=soil
+      - POSTGRES_USER=soiladmin
+      - POSTGRES_PASSWORD=soiladmin
+
+volumes:
+  postgres_data:
+  static_volume:
+  media_volume:
