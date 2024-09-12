@@ -8,7 +8,7 @@ services:
       args:
         - DJANGO_SETTINGS_MODULE=soil.settings.dev_docker
         - DJANGO_SECRET_KEY=secret
-        - HORTPLUS_JACK_KE=secret
+        - HORTPLUS_JACK_KEY=secret
         - SOIL_DB_PASSWORD=soiladmin
         - SOIL_DB_USER=soiladmin
         - SOIL_DB_NAME=soil
