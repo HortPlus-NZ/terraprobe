@@ -13,6 +13,7 @@ ARG HORTPLUS_API_KEY
 ARG HORTPLUS_METWATCH_API_KEY
 ARG PROPERTIES_API_URL
 ARG METWATCH_API_URL
+ARG ENVIRONMENT=dev
 
 # Avoid prompts from apt
 ENV DEBIAN_FRONTEND=noninteractive
@@ -23,6 +24,7 @@ ENV LC_ALL en_NZ.UTF-8
 ENV LANGUAGE en_NZ:en
 ENV TZ=Pacific/Auckland
 ENV PYTHONUNBUFFERED 1
+
 # Set build argument envs
 ENV DJANGO_SETTINGS_MODULE=${DJANGO_SETTINGS_MODULE}
 ENV DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
@@ -35,8 +37,7 @@ ENV HORTPLUS_API_KEY=${HORTPLUS_API_KEY}
 ENV HORTPLUS_METWATCH_API_KEY=${HORTPLUS_METWATCH_API_KEY}
 ENV PROPERTIES_API_URL=${PROPERTIES_API_URL}
 ENV METWATCH_API_URL=${METWATCH_API_URL}
-# ENV PROPERTIES_API_URL 'https://staging.api.properties.metwatch.nz/'
-# ENV METWATCH_API_URL 'https://staging.api.metwatch.nz/'
+ENV ENVIRONMENT=${ENVIRONMENT}
 
 # Install basic utilities and packages
 RUN apt-get update && apt-get install -y \
@@ -54,7 +55,8 @@ RUN apt-get update && apt-get install -y \
     locales \
     wget \
     gnupg2 \
-    lsb-release
+    lsb-release \
+    openssl
 
 # Set up locale
 RUN locale-gen en_NZ.UTF-8 && update-locale LANG=en_NZ.UTF-8 LC_ALL=en_NZ.UTF-8
@@ -73,17 +75,29 @@ RUN python3.8 -m pip install --upgrade pip
 # Install psycopg2 dependencies
 RUN apt-get install -y libpq-dev
 
-# Set up project directory
 WORKDIR /app
 
 # Copy requirements files
 COPY soil/requirements /app/requirements
 
-# Install Python dependencies
-RUN pip install -r /app/requirements/dev.txt
+# Install Python dependencies based on environment
+RUN if [ "$ENVIRONMENT" = "prod" ]; then \
+        pip install -r /app/requirements/prod.txt; \
+    elif [ "$ENVIRONMENT" = "staging" ]; then \
+        pip install -r /app/requirements/staging.txt; \
+    else \
+        pip install -r /app/requirements/dev.txt; \
+    fi
+
+# Install uWSGI
+RUN pip install uwsgi
+
+# Create uWSGI log directory
+RUN mkdir -p /var/log/uwsgi && chown www-data:www-data /var/log/uwsgi
 
 # Copy project files
 COPY soil /app
+
 
 # Set up Nginx
 RUN rm /etc/nginx/sites-enabled/default
@@ -92,9 +106,22 @@ COPY soil/config/nginx_docker.conf /etc/nginx/conf.d/app.conf
 # Copy uWSGI configuration
 COPY soil/config/uwsgi_docker.ini /app/uwsgi.ini
 
+# Generate self-signed SSL certificate for dev environment
+RUN if [ "$ENVIRONMENT" = "dev" ]; then \
+        mkdir -p /etc/nginx/ssl && \
+        openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+        -keyout /etc/nginx/ssl/nginx.key -out /etc/nginx/ssl/nginx.crt \
+        -subj "/C=NZ/ST=Auckland/L=Auckland/O=MyOrganization/OU=MyUnit/CN=localhost"; \
+    fi
 
-# Expose port
-EXPOSE 8000 8443
+# Expose ports
+EXPOSE 80 443
+
+# Set owner to www-user
+#RUN chown -R www-data:www-data /app
+#USER www-data
+
+ENV PYTHONPATH=/app:$PYTHONPATH
 
 # Start Nginx and uWSGI
 CMD service nginx start && uwsgi --ini /app/uwsgi.ini
