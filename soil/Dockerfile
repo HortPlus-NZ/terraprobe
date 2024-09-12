@@ -13,6 +13,8 @@ ARG HORTPLUS_API_KEY
 ARG HORTPLUS_METWATCH_API_KEY
 ARG PROPERTIES_API_URL
 ARG METWATCH_API_URL
+ARG CERTBOT_EMAIL
+ARG DOMAIN
 ARG ENVIRONMENT=dev
 
 # Avoid prompts from apt
@@ -37,6 +39,8 @@ ENV HORTPLUS_API_KEY=${HORTPLUS_API_KEY}
 ENV HORTPLUS_METWATCH_API_KEY=${HORTPLUS_METWATCH_API_KEY}
 ENV PROPERTIES_API_URL=${PROPERTIES_API_URL}
 ENV METWATCH_API_URL=${METWATCH_API_URL}
+ENV CERTBOT_EMAIL=${CERTBOT_EMAIL}
+ENV DOMAIN=${DOMAIN}
 ENV ENVIRONMENT=${ENVIRONMENT}
 
 # Install basic utilities and packages
@@ -104,22 +108,23 @@ RUN rm /etc/nginx/sites-enabled/default
 COPY soil/config/nginx_docker.conf /etc/nginx/conf.d/app.conf
 
 # Copy uWSGI configuration
-COPY soil/config/uwsgi_docker.ini /app/uwsgi.ini
+COPY soil/config/uwsgi_docker_${ENVIRONMENT}.ini /app/uwsgi.ini
 
-# Generate self-signed SSL certificate for dev environment
+# Generate SSL certificate based on environment
 RUN if [ "$ENVIRONMENT" = "dev" ]; then \
         mkdir -p /etc/nginx/ssl && \
         openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
         -keyout /etc/nginx/ssl/nginx.key -out /etc/nginx/ssl/nginx.crt \
         -subj "/C=NZ/ST=Auckland/L=Auckland/O=MyOrganization/OU=MyUnit/CN=localhost"; \
+    elif [ "$ENVIRONMENT" = "staging" ] || [ "$ENVIRONMENT" = "prod" ]; then \
+        apt-get update && \
+        apt-get install -y certbot python3-certbot-nginx && \
+        certbot --nginx -d ${DOMAIN} --non-interactive --agree-tos -m ${CERTBOT_EMAIL} && \
+        certbot renew --dry-run; \
     fi
 
 # Expose ports
 EXPOSE 80 443
-
-# Set owner to www-user
-#RUN chown -R www-data:www-data /app
-#USER www-data
 
 ENV PYTHONPATH=/app:$PYTHONPATH
 

@@ -17,6 +17,8 @@ services:
         - HORTPLUS_METWATCH_API_KEY=secret
         - PROPERTIES_API_URL='https://staging.api.properties.hortplus.com/'
         - METWATCH_API_URL='https://staging.api.metwatch.nz/'
+        - CERTBOT_EMAIL='admin@hortplus.com'
+        - DOMAIN='localhost'
     volumes:
       - static_volume:/app/static
       - media_volume:/app/media
@@ -28,10 +30,6 @@ services:
     environment:
       - DATABASE_URL=postgresql://soiladmin:soiladmin@db:5432/soil
       - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY:-default_secret_key_change_me_in_production}
-    # command: >
-    #   sh -c "python manage.py migrate &&
-    #          python manage.py collectstatic --noinput &&
-    #          python manage.py runserver 0.0.0.0:8000"
 
   db:
     build:
