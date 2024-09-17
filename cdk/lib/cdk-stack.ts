@@ -201,6 +201,9 @@ export class CdkStack extends cdk.Stack {
       {
         directory: path.join(__dirname, "../../soil"),
         file: "Dockerfile",
+        buildArgs: {
+          ENVIRONMENT: environmentType.stringValue,
+        },
       }
     );
 
