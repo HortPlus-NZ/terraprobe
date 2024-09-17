@@ -2,19 +2,6 @@
 FROM ubuntu:20.04
 
 # Build arguments
-ARG DJANGO_SETTINGS_MODULE
-ARG DJANGO_SECRET_KEY
-ARG HORTPLUS_JACK_KEY
-ARG SOIL_DB_PASSWORD
-ARG SOIL_DB_USER
-ARG SOIL_DB_NAME
-ARG SOIL_DB_HOST
-ARG HORTPLUS_API_KEY
-ARG HORTPLUS_METWATCH_API_KEY
-ARG PROPERTIES_API_URL
-ARG METWATCH_API_URL
-ARG CERTBOT_EMAIL
-ARG DOMAIN
 ARG ENVIRONMENT=dev
 
 # Avoid prompts from apt
@@ -28,19 +15,6 @@ ENV TZ=Pacific/Auckland
 ENV PYTHONUNBUFFERED 1
 
 # Set build argument envs
-ENV DJANGO_SETTINGS_MODULE=${DJANGO_SETTINGS_MODULE}
-ENV DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
-ENV HORTPLUS_JACK_KEY=${HORTPLUS_JACK_KEY}
-ENV SOIL_DB_PASSWORD=${SOIL_DB_PASSWORD}
-ENV SOIL_DB_USER=${SOIL_DB_USER}
-ENV SOIL_DB_NAME=${SOIL_DB_NAME}
-ENV SOIL_DB_HOST=${SOIL_DB_HOST}
-ENV HORTPLUS_API_KEY=${HORTPLUS_API_KEY}
-ENV HORTPLUS_METWATCH_API_KEY=${HORTPLUS_METWATCH_API_KEY}
-ENV PROPERTIES_API_URL=${PROPERTIES_API_URL}
-ENV METWATCH_API_URL=${METWATCH_API_URL}
-ENV CERTBOT_EMAIL=${CERTBOT_EMAIL}
-ENV DOMAIN=${DOMAIN}
 ENV ENVIRONMENT=${ENVIRONMENT}
 
 # Install basic utilities and packages
@@ -72,11 +46,7 @@ RUN ln -fs /usr/share/zoneinfo/Pacific/Auckland /etc/localtime && dpkg-reconfigu
 RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.8 1
 RUN update-alternatives --set python3 /usr/bin/python3.8
 RUN ln -sf /usr/bin/python3 /usr/bin/python
-
-# Upgrade pip
 RUN python3.8 -m pip install --upgrade pip
-
-# Install psycopg2 dependencies
 RUN apt-get install -y libpq-dev
 
 WORKDIR /app
@@ -99,9 +69,7 @@ RUN pip install uwsgi
 # Create uWSGI log directory
 RUN mkdir -p /var/log/uwsgi && chown www-data:www-data /var/log/uwsgi
 
-# Copy project files
 COPY soil /app
-
 
 # Set up Nginx
 RUN rm /etc/nginx/sites-enabled/default
@@ -110,17 +78,12 @@ COPY soil/config/nginx_docker.conf /etc/nginx/conf.d/app.conf
 # Copy uWSGI configuration
 COPY soil/config/uwsgi_docker_${ENVIRONMENT}.ini /app/uwsgi.ini
 
-# Generate SSL certificate based on environment
+# Generate self-signed cert when running locally
 RUN if [ "$ENVIRONMENT" = "dev" ]; then \
         mkdir -p /etc/nginx/ssl && \
         openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
         -keyout /etc/nginx/ssl/nginx.key -out /etc/nginx/ssl/nginx.crt \
         -subj "/C=NZ/ST=Auckland/L=Auckland/O=MyOrganization/OU=MyUnit/CN=localhost"; \
-    elif [ "$ENVIRONMENT" = "staging" ] || [ "$ENVIRONMENT" = "prod" ]; then \
-        apt-get update && \
-        apt-get install -y certbot python3-certbot-nginx && \
-        certbot --nginx -d ${DOMAIN} --non-interactive --agree-tos -m ${CERTBOT_EMAIL} && \
-        certbot renew --dry-run; \
     fi
 
 # Expose ports
