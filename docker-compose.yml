@@ -5,20 +5,6 @@ services:
     build:
       context: .
       dockerfile: soil/Dockerfile
-      args:
-        - DJANGO_SETTINGS_MODULE=soil.settings.dev_docker
-        - DJANGO_SECRET_KEY=secret
-        - HORTPLUS_JACK_KEY=secret
-        - SOIL_DB_PASSWORD=soiladmin
-        - SOIL_DB_USER=soiladmin
-        - SOIL_DB_NAME=soil
-        - SOIL_DB_HOST=db
-        - HORTPLUS_API_KEY=secret
-        - HORTPLUS_METWATCH_API_KEY=secret
-        - PROPERTIES_API_URL='https://staging.api.properties.hortplus.com/'
-        - METWATCH_API_URL='https://staging.api.metwatch.nz/'
-        - CERTBOT_EMAIL='admin@hortplus.com'
-        - DOMAIN='localhost'
     volumes:
       - static_volume:/app/static
       - media_volume:/app/media
@@ -30,6 +16,18 @@ services:
     environment:
       - DATABASE_URL=postgresql://soiladmin:soiladmin@db:5432/soil
       - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY:-default_secret_key_change_me_in_production}
+      - DJANGO_SETTINGS_MODULE=soil.settings.dev_docker
+      - HORTPLUS_JACK_KEY=secret
+      - SOIL_DB_PASSWORD=soiladmin
+      - SOIL_DB_USER=soiladmin
+      - SOIL_DB_NAME=soil
+      - SOIL_DB_HOST=db
+      - HORTPLUS_API_KEY=secret
+      - HORTPLUS_METWATCH_API_KEY=secret
+      - PROPERTIES_API_URL='https://staging.api.properties.hortplus.com/'
+      - METWATCH_API_URL='https://staging.api.metwatch.nz/'
+      - CERTBOT_EMAIL='admin@hortplus.com'
+      - DOMAIN='localhost'
 
   db:
     build:
