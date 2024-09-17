@@ -13,7 +13,16 @@ import * as path from "path";
 
 export class CdkStack extends cdk.Stack {
   private setupSSMParameters() {
-    // Create SSM Parameter for DJANGO_SECRET_KEY
+    const environmentType = new ssm.StringParameter(this, "EnvironmentType", {
+      parameterName: "/terraprobe/ENVIRONMENT",
+      description: "Environment type",
+      stringValue: new cdk.CfnParameter(this, "EnvironmentTypeValue", {
+        type: "String",
+        description: "Enter the environment type",
+        noEcho: true,
+      }).valueAsString,
+    });
+
     const djangoSecretKey = new ssm.StringParameter(this, "DjangoSecretKey", {
       parameterName: "/terraprobe/DJANGO_SECRET_KEY",
       description: "Django Secret Key for Terraprobe application",
@@ -24,7 +33,6 @@ export class CdkStack extends cdk.Stack {
       }).valueAsString,
     });
 
-    // Create SSM Parameters for other environment variables
     const hortplusJackKey = new ssm.StringParameter(this, "HortplusJackKey", {
       parameterName: "/terraprobe/HORTPLUS_JACK_KEY",
       description: "Hortplus Jack Key for Terraprobe application",
@@ -106,6 +114,7 @@ export class CdkStack extends cdk.Stack {
     });
 
     return {
+      environmentType,
       djangoSecretKey,
       hortplusJackKey,
       soilDbPassword,
@@ -168,6 +177,7 @@ export class CdkStack extends cdk.Stack {
     this.preCheck();
 
     const {
+      environmentType,
       djangoSecretKey,
       hortplusJackKey,
       soilDbPassword,
@@ -240,6 +250,7 @@ After=docker.service
 [Service]
 Restart=always
 ExecStart=/usr/bin/docker run --rm -p 80:80 -p 443:443 \\
+  -v /etc/letsencrypt:/etc/nginx/ssl:ro \\
   -e DJANGO_SETTINGS_MODULE=${djangoSecretKey.stringValue} \\
   -e DJANGO_SECRET_KEY=${djangoSecretKey.stringValue} \\
   -e HORTPLUS_JACK_KEY=${hortplusJackKey.stringValue} \\
@@ -251,6 +262,7 @@ ExecStart=/usr/bin/docker run --rm -p 80:80 -p 443:443 \\
   -e HORTPLUS_METWATCH_API_KEY=${hortplusMetwatchApiKey.stringValue} \\
   -e PROPERTIES_API_URL=${propertiesApiUrl.stringValue} \\
   -e METWATCH_API_URL=${metwatchApiUrl.stringValue} \\
+  -e ENVIRONMENT=${environmentType.stringValue} \\
   ${image.imageUri}
 ExecStop=/usr/bin/docker stop terraprobe
 
@@ -261,9 +273,13 @@ WantedBy=multi-user.target
     // Add user data to set up Docker and create a systemd service
     ec2Instance.addUserData(
       "apt-get update",
-      "apt-get install -y docker.io",
+      "apt-get install -y docker.io certbot",
       "systemctl start docker",
       "systemctl enable docker",
+      // Create directory for SSL certificates
+      "mkdir -p /etc/letsencrypt",
+      // Generate self-signed certificate for initial setup
+      "openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/letsencrypt/nginx.key -out /etc/letsencrypt/nginx.crt -subj '/CN=localhost'",
       `aws ecr get-login-password --region ${this.region} | docker login --username AWS --password-stdin ${this.account}.dkr.ecr.${this.region}.amazonaws.com`,
       `docker pull ${image.imageUri}`,
       // Create a systemd service file
@@ -271,23 +287,27 @@ WantedBy=multi-user.target
       // Reload systemd, enable and start the service
       "systemctl daemon-reload",
       "systemctl enable terraprobe.service",
-      "systemctl start terraprobe.service"
+      "systemctl start terraprobe.service",
+      // Add cron job to renew SSL certificate
+      "(crontab -l 2>/dev/null; echo '0 12 1 * * /usr/bin/certbot renew --quiet') | crontab -"
     );
 
     // Allow inbound traffic to EC2
     ec2Instance.connections.allowFromAnyIpv4(ec2.Port.tcp(80));
     ec2Instance.connections.allowFromAnyIpv4(ec2.Port.tcp(443));
 
-    // Create Route53 record
-    const zone = route53.HostedZone.fromLookup(this, "Zone", {
-      domainName: "hortplus.com",
-    });
-    new route53.ARecord(this, "SoilDNSRecord", {
-      zone,
-      recordName: "terraprobe.hortplus.com",
-      target: route53.RecordTarget.fromIpAddresses(
-        ec2Instance.instancePublicIp
-      ),
-    });
+    // Create Route53 record only if environment is 'prod'
+    if (environmentType.stringValue === "prod") {
+      const zone = route53.HostedZone.fromLookup(this, "Zone", {
+        domainName: "hortplus.com",
+      });
+      new route53.ARecord(this, "SoilDNSRecord", {
+        zone,
+        recordName: "terraprobe.hortplus.com",
+        target: route53.RecordTarget.fromIpAddresses(
+          ec2Instance.instancePublicIp
+        ),
+      });
+    }
   }
 }
