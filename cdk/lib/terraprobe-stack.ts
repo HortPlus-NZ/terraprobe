@@ -132,7 +132,7 @@ export class TerraprobeStack extends cdk.Stack {
       ),
       vpc,
       vpcSubnets: {
-        subnetType: ec2.SubnetType.PUBLIC, // Do we need a NAT gateway here?
+        subnetType: ec2.SubnetType.PUBLIC,
       },
       databaseName: soilDbName,
       credentials: rds.Credentials.fromPassword(
@@ -180,6 +180,9 @@ export class TerraprobeStack extends cdk.Stack {
 
     // Grant EC2 instance permission to pull from ECR
     image.repository.grantPull(ec2Instance);
+
+    // Allow EC2 instance to access the RDS database
+    dbInstance.connections.allowFrom(ec2Instance, ec2.Port.tcp(5432));
 
     // Define the systemd service file content
     const terraprobeServiceContent = `

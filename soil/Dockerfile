@@ -73,7 +73,7 @@ COPY soil /app
 
 # Set up Nginx
 RUN rm /etc/nginx/sites-enabled/default
-COPY soil/config/nginx_docker.conf /etc/nginx/conf.d/app.conf
+COPY soil/config/nginx_docker_${ENVIRONMENT}.conf /etc/nginx/conf.d/app.conf
 
 # Copy uWSGI configuration
 COPY soil/config/uwsgi_docker_${ENVIRONMENT}.ini /app/uwsgi.ini
