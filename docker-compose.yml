@@ -26,8 +26,6 @@ services:
       - HORTPLUS_METWATCH_API_KEY=secret
       - PROPERTIES_API_URL='https://staging.api.properties.hortplus.com/'
       - METWATCH_API_URL='https://staging.api.metwatch.nz/'
-      - CERTBOT_EMAIL='admin@hortplus.com'
-      - DOMAIN='localhost'
 
   db:
     build:

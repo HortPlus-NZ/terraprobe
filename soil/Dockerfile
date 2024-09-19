@@ -91,5 +91,7 @@ EXPOSE 80 443
 
 ENV PYTHONPATH=/app:$PYTHONPATH
 
-# Start Nginx and uWSGI
-CMD service nginx start && uwsgi --ini /app/uwsgi.ini
+# Generate static content and start services at runtime
+CMD python manage.py collectstatic --noinput --settings=soil.settings.${ENVIRONMENT}_docker && \
+    service nginx start && \
+    uwsgi --ini /app/uwsgi.ini
