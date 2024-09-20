@@ -103,7 +103,7 @@ export class TerraprobeStack extends cdk.Stack {
         exclude: [".git", "cdk", "node_modules", "cdk.out"],
         file: "soil/Dockerfile",
         buildArgs: {
-          ENVIRONMENT: "staging",
+          ENVIRONMENT: environmentType,
         },
       }
     );
@@ -194,6 +194,7 @@ After=docker.service
 [Service]
 Restart=always
 EnvironmentFile=/etc/terraprobe/environment
+ExecStartPre=bash -c "/usr/bin/aws ecr get-login-password --region ${this.region} | /usr/bin/docker login --username AWS --password-stdin ${this.account}.dkr.ecr.${this.region}.amazonaws.com"
 ExecStartPre=/usr/bin/docker pull \${ECR_IMAGE_URI}
 ExecStart=/usr/bin/docker run --rm --name terraprobe -p 80:80 -p 443:443 \\
   -v /etc/letsencrypt:/etc/nginx/ssl:ro \\
@@ -245,7 +246,7 @@ ENVIRONMENT=${environmentType}
 EOF`,
       `echo '${terraprobeServiceContent}' > /etc/systemd/system/terraprobe.service`,
       `if [ "${environmentType}" = "prod" ]; then`,
-      "  certbot certonly --standalone -d terraprobe.hortplus.com --non-interactive --agree-tos --email admin@hortplus.com --cert-name terraprobe --force-renewal --key-path /etc/letsencrypt/nginx.key --fullchain-path /etc/letsencrypt/nginx.crt",
+      "  certbot certonly --standalone -d terraprobe.hortplus.com --non-interactive --agree-tos --email admin@hortplus.com --cert-name terraprobe --key-path /etc/letsencrypt/nginx.key --fullchain-path /etc/letsencrypt/nginx.crt",
       "  systemctl restart terraprobe.service",
       "fi",
       "systemctl daemon-reload",
@@ -270,7 +271,7 @@ EOF`,
     ec2Instance.connections.allowFromAnyIpv4(ec2.Port.tcp(443));
 
     // Create Route53 record only if environment is 'prod'
-    if (environmentType.stringValue === "prod") {
+    if (environmentType === "prod") {
       const zone = route53.HostedZone.fromLookup(this, "Zone", {
         domainName: "hortplus.com",
       });
