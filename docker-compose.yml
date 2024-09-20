@@ -14,12 +14,12 @@ services:
     depends_on:
       - db
     environment:
-      - DATABASE_URL=postgresql://soiladmin:soiladmin@db:5432/soil
+      - DATABASE_URL=postgresql://test:test@db:5432/soil
       - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY:-default_secret_key_change_me_in_production}
       - DJANGO_SETTINGS_MODULE=soil.settings.dev_docker
       - HORTPLUS_JACK_KEY=secret
-      - SOIL_DB_PASSWORD=soiladmin
-      - SOIL_DB_USER=soiladmin
+      - SOIL_DB_PASSWORD=test
+      - SOIL_DB_USER=test
       - SOIL_DB_NAME=soil
       - SOIL_DB_HOST=db
       - HORTPLUS_API_KEY=secret
@@ -35,8 +35,8 @@ services:
       - postgres_data:/var/lib/postgresql/data
     environment:
       - POSTGRES_DB=soil
-      - POSTGRES_USER=soiladmin
-      - POSTGRES_PASSWORD=soiladmin
+      - POSTGRES_USER=test
+      - POSTGRES_PASSWORD=test
 
 volumes:
   postgres_data:
