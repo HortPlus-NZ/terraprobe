@@ -2,6 +2,9 @@ from ._base import *
 
 SOIL_DB_HOST = get_env_variable('SOIL_DB_HOST')
 
+PROPERTIES_API_URL = 'https://api.properties.hortplus.com/'
+METWATCH_API_URL = 'https://api.metwatch.nz/'
+
 DEBUG = False
 
 SECURE_SSL_REDIRECT = True
