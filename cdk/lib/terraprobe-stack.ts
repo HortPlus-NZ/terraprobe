@@ -184,6 +184,11 @@ export class TerraprobeStack extends cdk.Stack {
     // Allow EC2 instance to access the RDS database
     dbInstance.connections.allowFrom(ec2Instance, ec2.Port.tcp(5432));
 
+    const dbHost =
+      environmentType === "prod"
+        ? "db.terraprobe.hortplus.com"
+        : "staging.db.terraprobe.hortplus.com";
+
     // Define the systemd service file content
     const terraprobeServiceContent = `
 [Unit]
@@ -237,7 +242,7 @@ HORTPLUS_JACK_KEY=${hortplusJackKey}
 SOIL_DB_PASSWORD=${soilDbPassword}
 SOIL_DB_USER=${soilDbUser}
 SOIL_DB_NAME=${soilDbName}
-SOIL_DB_HOST=${dbInstance.dbInstanceEndpointAddress}
+SOIL_DB_HOST=${dbHost}
 HORTPLUS_API_KEY=${hortplusApiKey}
 HORTPLUS_METWATCH_API_KEY=${hortplusMetwatchApiKey}
 PROPERTIES_API_URL=${propertiesApiUrl}
