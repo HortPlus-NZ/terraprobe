@@ -12,7 +12,7 @@ from django.utils import timezone
 from datetime import timedelta, date
 from django.contrib import messages
 from skeleton.utils import get_current_season, get_site_season_start_end
-
+from django.conf import settings
 from skeleton.models import Reading, Site, Farm, WeatherStation, Season
 import os
 import json
