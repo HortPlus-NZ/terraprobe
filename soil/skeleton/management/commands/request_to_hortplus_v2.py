@@ -93,7 +93,11 @@ class Command(BaseCommand):
                     rainfall = 0
                     for rain in response:
                         logger.debug('Rain:' + str(rain))
-                        rainfall += float(rain)
+                        try:
+                            if rain and str(rain).strip():
+                                rainfall += float(rain)
+                        except (ValueError, TypeError):
+                            logger.warning(f'Invalid rainfall value received: {rain}')
                     logger.debug('Total Rainfall:' + str(rainfall))
                     reading.rain = round(rainfall, 1)
                     reading.save()
