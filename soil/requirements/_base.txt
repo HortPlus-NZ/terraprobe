@@ -15,7 +15,7 @@ django-autocomplete-light==3.5.1
 django-cors-headers==3.4.0
 django-rest-auth==0.9.5
 coreapi==2.3.3
-numpy==1.19.2
+numpy==1.22.0
 django-import-export==2.5.0
 djangorestframework_simplejwt==4.4.0
 pydantic==1.10.7
